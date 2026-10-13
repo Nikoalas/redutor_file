@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bancada de PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bancada de PDF</h1>
+    <p class="lede">Prepare um PDF para protocolo e assinatura digital: reduza o peso, preserve o texto, limpe metadados e divida por limite. Tudo é conferido na tela antes de baixar.</p>
+    <div class="privacy">o arquivo não sai do seu navegador</div>
+  </header>
+
+  <section class="step" id="s1">
+    <div class="step-head"><span class="step-no">1</span><h2>Escolha o PDF</h2></div>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Selecionar arquivo PDF">
+      <strong>Arraste o PDF aqui ou toque para escolher</strong>
+      <span>Funciona com arquivos de centenas de MB. Quanto maior, mais tempo leva.</span>
+    </div>
+    <input type="file" id="file" accept="application/pdf,.pdf" hidden>
+    <div class="file-info" id="fileInfo" hidden>
+      <span class="name" id="fName"></span>
+      <span class="meta" id="fMeta"></span>
+    </div>
+    <div class="note bad" id="signWarn" hidden>Este PDF parece já estar assinado digitalmente. Qualquer alteração, inclusive a redução, invalida a assinatura. Use o arquivo original sem assinatura.</div>
+    <div class="note bad" id="loadErr" hidden></div>
+  </section>
+
+  <section class="step" id="s2" aria-disabled="true">
+    <div class="step-head"><span class="step-no">2</span><h2>Como reduzir</h2></div>
+    <div class="modes">
+      <label class="mode">
+        <input type="radio" name="mode" value="selective" checked disabled>
+        <span><b>Inteligente</b><span class="tag">recomendado</span></span>
+        <small>Páginas com texto digital ficam intactas (texto continua selecionável). Só as páginas escaneadas ou de fotos são reduzidas.</small>
+      </label>
+      <label class="mode">
+        <input type="radio" name="mode" value="image" disabled>
+        <span><b>Todas como imagem</b></span>
+        <small>Refaz todas as páginas como JPEG. Reduz ao máximo, mas o texto deixa de ser selecionável.</small>
+      </label>
+      <label class="mode">
+        <input type="radio" name="mode" value="lossless" disabled>
+        <span><b>Sem nenhuma perda</b></span>
+        <small>Só reorganiza a estrutura interna. O ganho costuma ser pequeno.</small>
+      </label>
+    </div>
+
+    <div id="imgOpts" class="opts">
+      <div class="field">
+        <label for="preset">Qualidade</label>
+        <select id="preset" disabled>
+          <option value="0">Alta (200 dpi, JPEG 85%)</option>
+          <option value="1" selected>Equilibrada (150 dpi, JPEG 75%)</option>
+          <option value="2">Máxima compactação (110 dpi, JPEG 60%)</option>
+        </select>
+        <span class="hint">150 dpi costuma bastar para ler e protocolar.</span>
+      </div>
+      <div class="field">
+        <label for="limit">Limite do sistema em MB (opcional)</label>
+        <input type="number" id="limit" min="0.1" step="0.1" placeholder="ex.: 10" disabled>
+        <span class="hint">A página tenta qualidades menores até caber.</span>
+      </div>
+      <div class="field">
+        <label for="range">Páginas a reduzir (opcional)</label>
+        <input type="text" id="range" placeholder="ex.: 3-8, 12" disabled>
+        <span class="hint">As demais ficam originais. Vazio = todas.</span>
+      </div>
+      <label class="check"><input type="checkbox" id="gray" disabled><span>Tons de cinza <span class="muted">(documentos preto e branco)</span></span></label>
+    </div>
+
+    <div class="opts">
+      <label class="check"><input type="checkbox" id="split" checked disabled><span>Dividir automaticamente em partes se passar do limite</span></label>
+      <label class="check"><input type="checkbox" id="meta" checked disabled><span>Remover metadados (autor, software, datas)</span></label>
+    </div>
+
+    <div class="row">
+      <button id="run" disabled>Processar PDF</button>
+      <button id="cancel" class="ghost" hidden>Cancelar</button>
+    </div>
+    <div class="progress" id="prog" hidden>
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="label" id="progLabel"></div>
+    </div>
+    <div class="note bad" id="runErr" hidden></div>
+  </section>
+
+  <section class="step" id="s3" hidden>
+    <div class="step-head"><span class="step-no">3</span><h2>Resultado</h2></div>
+    <div class="sizes">
+      <div class="size"><span>Original</span><b id="szOrig">–</b></div>
+      <div class="size hl"><span>Reduzido</span><b id="szNew">–</b></div>
+      <div class="size"><span>Economia</span><b id="szPct">–</b></div>
+    </div>
+    <div class="note" id="resNote" hidden></div>
+    <ul class="checklist" id="check"></ul>
+
+    <div class="pager">
+      <button class="ghost" id="prev" aria-label="Página anterior">‹</button>
+      <span>página <span id="pgNow">1</span> de <span id="pgTotal">1</span></span>
+      <button class="ghost" id="next" aria-label="Próxima página">›</button>
+    </div>
+    <div class="compare">
+      <div class="pane"><h3>Original</h3><div class="frame"><canvas id="cvA"></canvas></div></div>
+      <div class="pane"><h3>Reduzido</h3><div class="frame"><canvas id="cvB"></canvas></div></div>
+    </div>
+
+    <div class="row" id="saveRow"></div>
+    <p class="after-sign">Depois de baixar, <b>assine com o certificado digital</b>. Qualquer alteração feita após a assinatura a invalida.</p>
+    <div class="note bad" id="saveErr" hidden></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
